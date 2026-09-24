@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import { prisma } from "./prisma";
 
 const SECRET_KEY = new TextEncoder().encode(
-  process.env.AUTH_SECRET || "hacknexus_production_fallback_secret_key_32_bytes_long"
+  process.env.JWT_SECRET || process.env.AUTH_SECRET || "hacknexus_production_fallback_secret_key_32_bytes_long_64_bits_entropy"
 );
 
 export interface TokenPayload {

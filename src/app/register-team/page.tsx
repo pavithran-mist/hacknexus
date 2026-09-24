@@ -328,6 +328,20 @@ function RegisterTeamForm() {
     }
   };
 
+  const loadRazorpayScript = () => {
+    return new Promise((resolve) => {
+      if (typeof window !== "undefined" && (window as any).Razorpay) {
+        resolve(true);
+        return;
+      }
+      const script = document.createElement("script");
+      script.src = "https://checkout.razorpay.com/v1/checkout.js";
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
+
   // Step 7: Complete Payment Verification
   const handleCompletePayment = async () => {
     if (!registrationResult) return;
@@ -335,6 +349,94 @@ function RegisterTeamForm() {
     setSubmitting(true);
 
     try {
+      if (paymentMode === "RAZORPAY") {
+        const orderRes = await fetch("/api/payments/create-order", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            registrationId: registrationResult.registrationId,
+            amount: registrationResult.amount,
+            currency: registrationResult.currency,
+          }),
+        });
+
+        const orderData = await orderRes.json();
+        if (!orderRes.ok) {
+          setError(orderData.error || "Failed to initialize Razorpay checkout");
+          setSubmitting(false);
+          return;
+        }
+
+        if (orderData.isRealGateway) {
+          await loadRazorpayScript();
+          if (typeof window === "undefined" || !(window as any).Razorpay) {
+            setError("Unable to load Razorpay checkout script. Check your internet connection.");
+            setSubmitting(false);
+            return;
+          }
+
+          const options = {
+            key: orderData.keyId,
+            amount: orderData.amount,
+            currency: orderData.currency,
+            name: "HACKNEXUS 2026",
+            description: "Squad Registration Fee",
+            order_id: orderData.orderId,
+            prefill: {
+              name: leaderName,
+              email: leaderEmail,
+              contact: leaderPhone,
+            },
+            theme: {
+              color: "#DC2626",
+            },
+            handler: async function (response: any) {
+              try {
+                const verifyRes = await fetch("/api/payments/verify", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    registrationId: registrationResult.registrationId,
+                    transactionId: registrationResult.transactionId,
+                    gateway: "RAZORPAY",
+                    orderId: response.razorpay_order_id,
+                    paymentId: response.razorpay_payment_id,
+                    signature: response.razorpay_signature,
+                    isDemo: false,
+                  }),
+                });
+
+                const data = await verifyRes.json();
+                if (!verifyRes.ok) {
+                  setError(data.error || "Payment signature verification failed.");
+                  setSubmitting(false);
+                  return;
+                }
+
+                try {
+                  confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+                } catch {}
+
+                setStep(8);
+              } catch {
+                setError("Network error while verifying payment.");
+              } finally {
+                setSubmitting(false);
+              }
+            },
+            modal: {
+              ondismiss: function () {
+                setSubmitting(false);
+              },
+            },
+          };
+
+          const rzpInstance = new (window as any).Razorpay(options);
+          rzpInstance.open();
+          return;
+        }
+      }
+
       const verifyRes = await fetch("/api/payments/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -370,7 +472,9 @@ function RegisterTeamForm() {
     } catch {
       setError("Payment processing encountered an error.");
     } finally {
-      setSubmitting(false);
+      if (paymentMode !== "RAZORPAY") {
+        setSubmitting(false);
+      }
     }
   };
 

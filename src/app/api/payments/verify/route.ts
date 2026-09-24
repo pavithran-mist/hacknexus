@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser, logActivity } from "@/lib/auth";
 
@@ -42,6 +43,28 @@ export async function POST(req: NextRequest) {
         { error: "Registration record not found" },
         { status: 404 }
       );
+    }
+
+    // Verify Razorpay HMAC SHA256 Signature if live Razorpay gateway is used
+    if (gateway === "RAZORPAY" && !isDemo && orderId && paymentId && signature) {
+      const dbSecret = await prisma.systemSetting.findUnique({
+        where: { key: "owner_razorpay_key_secret" },
+      });
+      const razorpaySecret = dbSecret?.value || process.env.RAZORPAY_KEY_SECRET || "";
+
+      if (razorpaySecret && !razorpaySecret.includes("demo_mode")) {
+        const expectedSignature = crypto
+          .createHmac("sha256", razorpaySecret)
+          .update(`${orderId}|${paymentId}`)
+          .digest("hex");
+
+        if (expectedSignature !== signature) {
+          return NextResponse.json(
+            { error: "Payment verification failed: Invalid Razorpay cryptographic signature." },
+            { status: 400 }
+          );
+        }
+      }
     }
 
     // Find the associated payment record or create one

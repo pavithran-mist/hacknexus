@@ -4,11 +4,13 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "node scripts/configure-db.js && prisma generate && next build",
     "start": "next start",
     "lint": "next lint",
     "seed": "tsx prisma/seed.ts",
-    "test": "tsx tests/business-logic.test.ts"
+    "test": "tsx tests/business-logic.test.ts",
+    "db:configure": "node scripts/configure-db.js",
+    "db:push": "node scripts/configure-db.js && prisma db push"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
