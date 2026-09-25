@@ -13,9 +13,10 @@ export async function GET(req: NextRequest) {
     if (status) where.status = status;
     if (search) {
       where.OR = [
-        { transactionId: { contains: search } },
-        { team: { name: { contains: search } } },
-        { registration: { registrationNumber: { contains: search } } },
+        { transactionId: { contains: search, mode: "insensitive" } },
+        { paymentId: { contains: search, mode: "insensitive" } },
+        { team: { name: { contains: search, mode: "insensitive" } } },
+        { registration: { registrationNumber: { contains: search, mode: "insensitive" } } },
       ];
     }
 

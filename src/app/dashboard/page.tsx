@@ -215,12 +215,48 @@ export default async function ParticipantDashboard() {
         </div>
       )}
 
+      {/* Pending Admin Verification Banner */}
+      {(registration?.status === "PENDING" || payment?.status === "PENDING") && (
+        <div className="p-5 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-lg shadow-amber-950/20">
+          <div className="flex items-start sm:items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400 flex-shrink-0">
+              <Clock className="w-5 h-5 animate-pulse" />
+            </div>
+            <div className="space-y-0.5">
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                  Payment Verification in Progress
+                </span>
+                {payment?.paymentId && (
+                  <span className="text-xs font-mono text-amber-200">
+                    UTR: <strong>{payment.paymentId}</strong>
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-amber-100/90 leading-relaxed">
+                Your payment reference has been submitted. The HackNexus organizers are verifying your transaction against their bank account. Once approved in the admin panel, your squad registration will be confirmed.
+              </p>
+            </div>
+          </div>
+          <div className="flex-shrink-0 text-right">
+            <span className="text-[10px] text-muted-foreground uppercase font-mono block">Support Contact</span>
+            <span className="text-xs text-white font-mono">{ownerAccount.owner_contact_phone}</span>
+          </div>
+        </div>
+      )}
+
       {/* Top Welcome Bar */}
       <div className="bg-[#161B22] border border-[#30363D] rounded-2xl p-6 sm:p-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="space-y-2">
           <div className="flex items-center gap-2">
-            <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-red-500/20 text-red-400 border border-red-500/30">
-              {team.status}
+            <span
+              className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${
+                team.status === "APPROVED"
+                  ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
+                  : "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+              }`}
+            >
+              {team.status === "APPROVED" ? "APPROVED" : "PENDING APPROVAL"}
             </span>
             <span className="text-xs text-muted-foreground">{hackathon.name}</span>
           </div>
@@ -239,7 +275,16 @@ export default async function ParticipantDashboard() {
             {registration?.registrationNumber || "PENDING"}
           </span>
           <span className="text-[11px] text-muted-foreground block mt-1">
-            Payment Status: <strong className="text-emerald-400">{registration?.status}</strong>
+            Payment Status:{" "}
+            <strong
+              className={
+                registration?.status === "CONFIRMED"
+                  ? "text-emerald-400"
+                  : "text-amber-400"
+              }
+            >
+              {registration?.status || "PENDING"}
+            </strong>
           </span>
         </div>
       </div>
@@ -250,10 +295,18 @@ export default async function ParticipantDashboard() {
         <div className="bg-[#161B22] border border-[#30363D] rounded-xl p-4 space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-[10px] uppercase font-bold text-muted-foreground">1. Registration</span>
-            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+            {registration?.status === "CONFIRMED" ? (
+              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+            ) : (
+              <Clock className="w-4 h-4 text-amber-400" />
+            )}
           </div>
-          <p className="text-sm font-bold text-white">Confirmed</p>
-          <p className="text-[11px] text-muted-foreground">Team roster & fee paid</p>
+          <p className="text-sm font-bold text-white">
+            {registration?.status === "CONFIRMED" ? "Confirmed" : "Pending Verification"}
+          </p>
+          <p className="text-[11px] text-muted-foreground">
+            {registration?.status === "CONFIRMED" ? "Team roster & fee paid" : "Awaiting Admin Review"}
+          </p>
         </div>
 
         {/* 2. Hackathon Sprint */}
@@ -501,8 +554,14 @@ export default async function ParticipantDashboard() {
               <h3 className="text-xs font-bold uppercase tracking-wider text-white flex items-center gap-2">
                 <CreditCard className="w-4 h-4 text-red-500" /> Payment & Billing
               </h3>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                {payment?.status === "SUCCESS" ? "PAID" : "VERIFIED"}
+              <span
+                className={`text-[10px] font-bold px-2 py-0.5 rounded border ${
+                  payment?.status === "SUCCESS"
+                    ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
+                    : "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                }`}
+              >
+                {payment?.status === "SUCCESS" ? "PAID & CONFIRMED" : "PENDING APPROVAL"}
               </span>
             </div>
 
@@ -514,14 +573,20 @@ export default async function ParticipantDashboard() {
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Txn Reference:</span>
+                <span className="text-muted-foreground">Txn ID:</span>
                 <span className="font-mono text-red-400 text-[11px]">
                   {payment?.transactionId || "TXN-CONFIRMED"}
                 </span>
               </div>
               <div className="flex justify-between">
+                <span className="text-muted-foreground">UTR / Payment Ref:</span>
+                <span className="font-mono text-amber-400 text-[11px] font-bold">
+                  {payment?.paymentId || "—"}
+                </span>
+              </div>
+              <div className="flex justify-between">
                 <span className="text-muted-foreground">Gateway:</span>
-                <span className="font-mono text-white text-[11px]">{payment?.gateway || "DEMO / DIRECT"}</span>
+                <span className="font-mono text-white text-[11px]">{payment?.gateway || "DIRECT_UPI"}</span>
               </div>
             </div>
 

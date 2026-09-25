@@ -186,19 +186,68 @@ export default function OwnerAccountClient({ initialAccount }: OwnerAccountProps
                   />
                 </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-white">
-                    Official UPI ID (VPA)
+                <div className="space-y-1.5 sm:col-span-2">
+                  <label className="text-xs font-semibold text-white flex items-center justify-between">
+                    <span>Official UPI ID (VPA) *</span>
+                    <span className="text-[10px] text-muted-foreground">Used for direct UPI payments</span>
                   </label>
                   <input
                     type="text"
                     name="owner_upi_id"
                     value={formData.owner_upi_id || ""}
                     onChange={handleChange}
-                    placeholder="e.g. hacknexus@upi"
+                    placeholder="e.g. yourname@upi or phonepe/gpay ID"
                     required
                     className="w-full px-3.5 py-2.5 rounded-xl bg-[#0D1117] border border-[#30363D] text-white text-xs font-mono focus:outline-none focus:border-red-500"
                   />
+                </div>
+
+                <div className="space-y-2 sm:col-span-2 p-4 rounded-xl bg-[#0D1117] border border-[#30363D]">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-white flex items-center gap-1.5">
+                      <QrCode className="w-4 h-4 text-red-500" />
+                      <span>Upload Custom UPI QR Code Image (GPay / PhonePe / Paytm)</span>
+                    </label>
+                    {formData.owner_qr_code_image && (
+                      <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-semibold flex items-center gap-1">
+                        <CheckCircle2 className="w-3 h-3" /> Active QR Image
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onload = (event) => {
+                            if (event.target?.result) {
+                              setFormData({
+                                ...formData,
+                                owner_qr_code_image: event.target.result as string,
+                              });
+                            }
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                      className="w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-red-600 file:text-white hover:file:bg-red-700 cursor-pointer bg-[#161B22] border border-[#30363D] rounded-xl p-1.5"
+                    />
+                    {formData.owner_qr_code_image && (
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, owner_qr_code_image: "" })}
+                        className="text-xs text-rose-400 hover:text-rose-300 whitespace-nowrap cursor-pointer px-3 py-1.5 rounded-lg border border-rose-500/30 bg-rose-500/10"
+                      >
+                        Remove QR Image
+                      </button>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    Upload a screenshot or photo of your UPI QR code. Participants will see this exact QR code on the payment screen to scan & pay with any UPI app.
+                  </p>
                 </div>
 
                 <div className="space-y-1.5">
@@ -392,21 +441,30 @@ export default function OwnerAccountClient({ initialAccount }: OwnerAccountProps
                 <span>Direct UPI QR Scanner</span>
               </div>
 
-              <div className="w-36 h-36 mx-auto bg-white rounded-xl p-2.5 shadow-md flex items-center justify-center">
-                {/* Visual SVG QR Representation */}
-                <div className="w-full h-full bg-slate-900 rounded-lg p-2 flex flex-col justify-between">
-                  <div className="flex justify-between">
-                    <div className="w-6 h-6 border-2 border-white rounded-sm p-0.5"><div className="w-full h-full bg-white" /></div>
-                    <div className="w-6 h-6 border-2 border-white rounded-sm p-0.5"><div className="w-full h-full bg-white" /></div>
+              <div className="w-40 h-40 mx-auto bg-white rounded-xl p-2 shadow-md flex items-center justify-center overflow-hidden">
+                {formData.owner_qr_code_image ? (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img
+                    src={formData.owner_qr_code_image}
+                    alt="Custom UPI QR"
+                    className="w-full h-full object-contain"
+                  />
+                ) : (
+                  /* Visual SVG QR Representation */
+                  <div className="w-full h-full bg-slate-900 rounded-lg p-2 flex flex-col justify-between">
+                    <div className="flex justify-between">
+                      <div className="w-6 h-6 border-2 border-white rounded-sm p-0.5"><div className="w-full h-full bg-white" /></div>
+                      <div className="w-6 h-6 border-2 border-white rounded-sm p-0.5"><div className="w-full h-full bg-white" /></div>
+                    </div>
+                    <div className="text-[8px] text-center font-bold text-red-400 uppercase tracking-tighter">
+                      SCAN & PAY
+                    </div>
+                    <div className="flex justify-between items-end">
+                      <div className="w-6 h-6 border-2 border-white rounded-sm p-0.5"><div className="w-full h-full bg-white" /></div>
+                      <div className="w-4 h-4 bg-red-500 rounded-sm" />
+                    </div>
                   </div>
-                  <div className="text-[8px] text-center font-bold text-red-400 uppercase tracking-tighter">
-                    SCAN & PAY
-                  </div>
-                  <div className="flex justify-between items-end">
-                    <div className="w-6 h-6 border-2 border-white rounded-sm p-0.5"><div className="w-full h-full bg-white" /></div>
-                    <div className="w-4 h-4 bg-red-500 rounded-sm" />
-                  </div>
-                </div>
+                )}
               </div>
 
               <div className="text-xs">

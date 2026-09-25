@@ -67,14 +67,30 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Check if this is a manual DIRECT_UPI payment requiring admin approval
+    const isDirectUpi = gateway === "DIRECT_UPI" && !isDemo;
+
+    if (isDirectUpi) {
+      if (!paymentId || paymentId.trim().length < 6) {
+        return NextResponse.json(
+          { error: "Please provide a valid UTR / UPI Transaction Reference Number (minimum 6 digits)." },
+          { status: 400 }
+        );
+      }
+    }
+
     // Find the associated payment record or create one
     let payment = await prisma.payment.findFirst({
       where: { registrationId: registration.id },
     });
 
-    const verifiedOrderId = orderId || `demo_ord_${Date.now()}`;
-    const verifiedPaymentId = paymentId || `demo_pay_${Date.now()}`;
-    const verifiedSignature = signature || `demo_sig_verified_${Date.now()}`;
+    const verifiedOrderId = orderId || `${gateway.toLowerCase()}_ord_${Date.now()}`;
+    const verifiedPaymentId = paymentId || `${gateway.toLowerCase()}_pay_${Date.now()}`;
+    const verifiedSignature = signature || `${gateway.toLowerCase()}_sig_${Date.now()}`;
+
+    const newPaymentStatus = isDirectUpi ? "PENDING" : "SUCCESS";
+    const newRegStatus = isDirectUpi ? "PENDING" : "CONFIRMED";
+    const newTeamStatus = isDirectUpi ? "PENDING_APPROVAL" : "APPROVED";
 
     if (!payment) {
       payment = await prisma.payment.create({
@@ -85,7 +101,7 @@ export async function POST(req: NextRequest) {
           amount: registration.feeAmount,
           currency: registration.currency,
           gateway,
-          status: "SUCCESS",
+          status: newPaymentStatus,
           orderId: verifiedOrderId,
           paymentId: verifiedPaymentId,
           signature: verifiedSignature,
@@ -96,7 +112,7 @@ export async function POST(req: NextRequest) {
       payment = await prisma.payment.update({
         where: { id: payment.id },
         data: {
-          status: "SUCCESS",
+          status: newPaymentStatus,
           gateway,
           orderId: verifiedOrderId,
           paymentId: verifiedPaymentId,
@@ -106,25 +122,27 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Update Registration to CONFIRMED
+    // Update Registration status
     await prisma.registration.update({
       where: { id: registration.id },
-      data: { status: "CONFIRMED" },
+      data: { status: newRegStatus },
     });
 
-    // Update Team to APPROVED
+    // Update Team status
     await prisma.team.update({
       where: { id: registration.teamId },
-      data: { status: "APPROVED" },
+      data: { status: newTeamStatus },
     });
 
     // Create Notification for the Leader
     await prisma.notification.create({
       data: {
         userId: registration.team.leaderId,
-        title: "Registration & Payment Confirmed!",
-        message: `Your team ${registration.team.name} is successfully registered for ${registration.hackathon.name}. Registration ID: ${registration.registrationNumber}`,
-        type: "REGISTRATION",
+        title: isDirectUpi ? "Payment Submitted for Verification" : "Registration & Payment Confirmed!",
+        message: isDirectUpi
+          ? `Your payment reference (${verifiedPaymentId}) has been submitted for admin verification for ${registration.hackathon.name}. You will be notified once confirmed.`
+          : `Your team ${registration.team.name} is successfully registered for ${registration.hackathon.name}. Registration ID: ${registration.registrationNumber}`,
+        type: isDirectUpi ? "PAYMENT" : "REGISTRATION",
         link: "/dashboard",
       },
     });
@@ -133,7 +151,7 @@ export async function POST(req: NextRequest) {
     await logActivity({
       actorId: registration.team.leaderId,
       actorEmail: registration.team.leader.email,
-      action: "PAYMENT_COMPLETED",
+      action: isDirectUpi ? "PAYMENT_SUBMITTED_FOR_VERIFICATION" : "PAYMENT_COMPLETED",
       entity: "Payment",
       entityId: payment.id,
       metadata: {
@@ -141,18 +159,25 @@ export async function POST(req: NextRequest) {
         currency: payment.currency,
         registrationNumber: registration.registrationNumber,
         teamName: registration.team.name,
+        paymentId: verifiedPaymentId,
+        gateway,
         isDemo: Boolean(isDemo),
+        pendingApproval: isDirectUpi,
       },
       isDemo: Boolean(isDemo),
     });
 
     return NextResponse.json({
       success: true,
-      message: isDemo
+      pendingApproval: isDirectUpi,
+      message: isDirectUpi
+        ? "Payment reference submitted successfully. HackNexus Admin will verify and confirm your registration."
+        : isDemo
         ? "Demo Payment Confirmed — No real money charged"
         : "Payment verified successfully",
       registrationNumber: registration.registrationNumber,
       transactionId: payment.transactionId,
+      paymentId: verifiedPaymentId,
       amount: payment.amount,
       currency: payment.currency,
       team: registration.team,

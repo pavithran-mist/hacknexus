@@ -28,6 +28,73 @@ export default function PaymentsManager({ initialPayments }: { initialPayments: 
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
 
+  const [approvingId, setApprovingId] = useState<string | null>(null);
+
+  const handleQuickApprove = async (p: any) => {
+    setApprovingId(p.id);
+    setError("");
+    setMessage("");
+    try {
+      const res = await fetch(`/api/admin/payments/${p.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "APPROVE" }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || "Approval failed");
+        return;
+      }
+      setMessage(`Payment ${p.transactionId} for squad "${p.team?.name}" approved successfully! Registration confirmed.`);
+      setPayments((prev) =>
+        prev.map((item) =>
+          item.id === p.id
+            ? { ...item, status: "SUCCESS", registration: { ...item.registration, status: "CONFIRMED" } }
+            : item
+        )
+      );
+      router.refresh();
+    } catch {
+      setError("An unexpected network error occurred.");
+    } finally {
+      setApprovingId(null);
+    }
+  };
+
+  const handleQuickReject = async (p: any) => {
+    if (!confirm(`Are you sure you want to reject payment ${p.transactionId} for squad "${p.team?.name}"?`)) {
+      return;
+    }
+    setApprovingId(p.id);
+    setError("");
+    setMessage("");
+    try {
+      const res = await fetch(`/api/admin/payments/${p.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "REJECT" }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || "Rejection failed");
+        return;
+      }
+      setMessage(`Payment ${p.transactionId} for squad "${p.team?.name}" marked as REJECTED.`);
+      setPayments((prev) =>
+        prev.map((item) =>
+          item.id === p.id
+            ? { ...item, status: "FAILED", registration: { ...item.registration, status: "REJECTED" } }
+            : item
+        )
+      );
+      router.refresh();
+    } catch {
+      setError("An unexpected network error occurred.");
+    } finally {
+      setApprovingId(null);
+    }
+  };
+
   const openAdjustModal = (p: any, action: "REFUND" | "MANUAL_SUCCESS") => {
     setAdjustingPayment(p);
     setAdjustAction(action);
@@ -85,7 +152,8 @@ export default function PaymentsManager({ initialPayments }: { initialPayments: 
     const matchesSearch =
       search === "" ||
       p.transactionId.toLowerCase().includes(s) ||
-      p.team?.name.toLowerCase().includes(s) ||
+      (p.paymentId && p.paymentId.toLowerCase().includes(s)) ||
+      p.team?.name?.toLowerCase().includes(s) ||
       p.registration?.registrationNumber?.toLowerCase().includes(s);
     const matchesStatus = filterStatus === "" || p.status === filterStatus;
     return matchesSearch && matchesStatus;
@@ -94,9 +162,26 @@ export default function PaymentsManager({ initialPayments }: { initialPayments: 
   return (
     <div className="space-y-4">
       {message && (
-        <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
-          <span>{message}</span>
+        <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs flex items-center justify-between gap-2 shadow-lg">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 flex-shrink-0 text-emerald-400" />
+            <span>{message}</span>
+          </div>
+          <button onClick={() => setMessage("")} className="text-muted-foreground hover:text-white">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
+      {error && (
+        <div className="p-3.5 rounded-xl bg-danger/10 border border-danger/30 text-rose-300 text-xs flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 flex-shrink-0" />
+            <span>{error}</span>
+          </div>
+          <button onClick={() => setError("")} className="text-muted-foreground hover:text-white">
+            <X className="w-4 h-4" />
+          </button>
         </div>
       )}
 
@@ -107,7 +192,7 @@ export default function PaymentsManager({ initialPayments }: { initialPayments: 
             <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input
               type="text"
-              placeholder="Search TXN, Reg ID, Team..."
+              placeholder="Search TXN, UTR, Reg ID, Team..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full bg-[#111827] border border-border rounded-lg pl-8 pr-3 py-1.5 text-xs text-white focus:outline-none focus:border-primary"
@@ -121,7 +206,8 @@ export default function PaymentsManager({ initialPayments }: { initialPayments: 
           >
             <option value="">All Statuses</option>
             <option value="SUCCESS">SUCCESS</option>
-            <option value="PENDING">PENDING</option>
+            <option value="PENDING">PENDING (Action Required)</option>
+            <option value="FAILED">FAILED / REJECTED</option>
             <option value="REFUNDED">REFUNDED</option>
           </select>
         </div>
@@ -145,6 +231,7 @@ export default function PaymentsManager({ initialPayments }: { initialPayments: 
                 <th className="p-3.5">Squad</th>
                 <th className="p-3.5">Amount</th>
                 <th className="p-3.5">Gateway</th>
+                <th className="p-3.5">UTR / Reference</th>
                 <th className="p-3.5">Date</th>
                 <th className="p-3.5">Status</th>
                 <th className="p-3.5 text-right">Actions</th>
@@ -169,6 +256,15 @@ export default function PaymentsManager({ initialPayments }: { initialPayments: 
                       {p.gateway} {p.isDemo && "(DEMO)"}
                     </span>
                   </td>
+                  <td className="p-3.5 font-mono text-xs">
+                    {p.paymentId ? (
+                      <span className="text-amber-400 font-bold bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/30 inline-block">
+                        {p.paymentId}
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground text-[11px]">—</span>
+                    )}
+                  </td>
                   <td className="p-3.5 text-muted-foreground font-mono text-[11px]">
                     {formatDateTime(p.createdAt)}
                   </td>
@@ -179,26 +275,47 @@ export default function PaymentsManager({ initialPayments }: { initialPayments: 
                           ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
                           : p.status === "REFUNDED"
                           ? "bg-danger/20 text-rose-400 border border-danger/30"
+                          : p.status === "FAILED"
+                          ? "bg-rose-950 text-rose-400 border border-rose-800"
                           : "bg-amber-500/20 text-amber-300 border border-amber-500/30"
                       }`}
                     >
                       {p.status}
                     </span>
                   </td>
-                  <td className="p-3.5 text-right space-x-1.5 whitespace-nowrap">
+                  <td className="p-3.5 text-right whitespace-nowrap">
                     {p.status === "PENDING" && (
-                      <button
-                        onClick={() => openAdjustModal(p, "MANUAL_SUCCESS")}
-                        className="px-2 py-1 rounded bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500 hover:text-white text-[11px] font-semibold transition-colors"
-                        title="Manual Payment Confirmation"
-                      >
-                        Approve (Audit)
-                      </button>
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          onClick={() => handleQuickApprove(p)}
+                          disabled={approvingId === p.id}
+                          className="px-2.5 py-1 rounded-md bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] transition-all flex items-center gap-1 shadow-sm disabled:opacity-50 cursor-pointer"
+                          title="1-Click Approve Payment & Confirm Registration"
+                        >
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          <span>{approvingId === p.id ? "Approving..." : "Approve"}</span>
+                        </button>
+                        <button
+                          onClick={() => handleQuickReject(p)}
+                          disabled={approvingId === p.id}
+                          className="px-2 py-1 rounded-md bg-danger/20 text-rose-400 hover:bg-danger hover:text-white text-[11px] font-semibold transition-colors cursor-pointer"
+                          title="Reject Payment"
+                        >
+                          Reject
+                        </button>
+                        <button
+                          onClick={() => openAdjustModal(p, "MANUAL_SUCCESS")}
+                          className="px-2 py-1 rounded bg-[#111827] text-muted-foreground hover:text-white border border-border text-[10px] transition-colors cursor-pointer"
+                          title="Add Audit Justification"
+                        >
+                          Audit
+                        </button>
+                      </div>
                     )}
                     {p.status === "SUCCESS" && (
                       <button
                         onClick={() => openAdjustModal(p, "REFUND")}
-                        className="px-2 py-1 rounded bg-danger/20 text-rose-400 hover:bg-danger hover:text-white text-[11px] font-semibold transition-colors"
+                        className="px-2.5 py-1 rounded bg-danger/20 text-rose-400 hover:bg-danger hover:text-white text-[11px] font-semibold transition-colors cursor-pointer"
                         title="Issue Refund"
                       >
                         Refund

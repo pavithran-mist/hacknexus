@@ -14,6 +14,7 @@ export async function GET() {
       "owner_contact_email",
       "owner_contact_phone",
       "owner_qr_code_url",
+      "owner_qr_code_image",
       "payment_mode",
       "razorpay_key_id",
     ];

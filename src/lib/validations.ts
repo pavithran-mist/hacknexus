@@ -38,11 +38,11 @@ export const teamRegistrationSchema = z.object({
   themeId: z.string().min(1, "Please select a theme"),
   problemId: z.string().min(1, "Please select a problem statement"),
   members: z.array(teamMemberSchema).min(1, "At least one team member is required"),
-  prototypeUrl: z.string().url("Must be a valid URL").or(z.literal("")).optional().default(""),
-  githubUrl: z.string().url("Must be a valid GitHub URL").or(z.literal("")).optional().default(""),
-  videoUrl: z.string().url("Must be a valid Video URL").or(z.literal("")).optional().default(""),
-  projectDescription: z.string().min(20, "Project description must be at least 20 characters"),
-  technologies: z.string().min(2, "Technologies list is required"),
+  prototypeUrl: z.string().optional().default(""),
+  githubUrl: z.string().optional().default(""),
+  videoUrl: z.string().optional().default(""),
+  projectDescription: z.string().optional().default(""),
+  technologies: z.string().optional().default(""),
 });
 
 export const prototypeSubmissionSchema = z.object({

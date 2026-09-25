@@ -23,6 +23,7 @@ import {
   Building,
   QrCode,
   Copy,
+  Clock,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 
@@ -97,19 +98,11 @@ function RegisterTeamForm() {
   const [selectedThemeId, setSelectedThemeId] = useState(preselectedThemeId);
   const [selectedProblemId, setSelectedProblemId] = useState(preselectedProblemId);
 
-  // Step 5: Prototype details
-  const [prototypeUrl, setPrototypeUrl] = useState("https://myproject.vercel.app");
-  const [githubUrl, setGithubUrl] = useState("https://github.com/myteam/project");
-  const [videoUrl, setVideoUrl] = useState("");
-  const [projectDescription, setProjectDescription] = useState(
-    "Innovative distributed solution addressing key latency and accuracy bottlenecks."
-  );
-  const [technologies, setTechnologies] = useState("Next.js, Python, PostgreSQL, Docker");
-
-  // Step 7: Payment & Confirmed Data
+  // Step 6: Payment & Confirmed Data
   const [paymentMode, setPaymentMode] = useState<"DEMO" | "DIRECT_UPI" | "RAZORPAY">("DIRECT_UPI");
   const [utrNumber, setUtrNumber] = useState("");
   const [copiedField, setCopiedField] = useState("");
+  const [isPendingApproval, setIsPendingApproval] = useState(false);
   const [ownerAccount, setOwnerAccount] = useState<Record<string, string>>({
     owner_account_name: "HackNexus Global Foundation",
     owner_upi_id: "hacknexus@upi",
@@ -292,18 +285,12 @@ function RegisterTeamForm() {
       }
       setStep(5);
     } else if (step === 5) {
-      if (!projectDescription || !technologies) {
-        setError("Please fill in your project solution summary and intended technologies.");
-        return;
-      }
-      setStep(6);
-    } else if (step === 6) {
-      // Proceed to Payment
+      // Step 5 is Review Summary -> Proceed to Payment Initiation
       handleInitiateRegistration();
     }
   };
 
-  // Step 6 -> 7: Initiate Registration API
+  // Step 5 -> 6: Initiate Registration API
   const handleInitiateRegistration = async () => {
     if (!hackathon) return;
     setError("");
@@ -317,18 +304,18 @@ function RegisterTeamForm() {
         leaderEmail,
         leaderPhone,
         college,
-        department,
+        department: department || "General",
         city,
         state,
-        country,
+        country: country || "India",
         themeId: selectedThemeId,
         problemId: selectedProblemId,
         members,
-        prototypeUrl,
-        githubUrl,
-        videoUrl,
-        projectDescription,
-        technologies,
+        prototypeUrl: "",
+        githubUrl: "",
+        videoUrl: "",
+        projectDescription: "",
+        technologies: "",
       };
 
       const res = await fetch("/api/teams/register", {
@@ -352,7 +339,7 @@ function RegisterTeamForm() {
         currency: data.currency,
       });
 
-      setStep(7); // Jump to Payment Step
+      setStep(6); // Jump to Payment Step
     } catch {
       setError("An unexpected network error occurred.");
     } finally {
@@ -374,10 +361,18 @@ function RegisterTeamForm() {
     });
   };
 
-  // Step 7: Complete Payment Verification
+  // Step 6: Complete Payment Verification / Submit UTR
   const handleCompletePayment = async () => {
     if (!registrationResult) return;
     setError("");
+
+    if (paymentMode === "DIRECT_UPI") {
+      if (!utrNumber || utrNumber.trim().length < 6) {
+        setError("Please enter your 12-digit UTR / UPI Transaction Reference Number after transferring.");
+        return;
+      }
+    }
+
     setSubmitting(true);
 
     try {
@@ -445,11 +440,12 @@ function RegisterTeamForm() {
                   return;
                 }
 
+                setIsPendingApproval(false);
                 try {
                   confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
                 } catch {}
 
-                setStep(8);
+                setStep(7);
               } catch {
                 setError("Network error while verifying payment.");
               } finally {
@@ -476,7 +472,7 @@ function RegisterTeamForm() {
           registrationId: registrationResult.registrationId,
           transactionId: registrationResult.transactionId,
           gateway: paymentMode,
-          paymentId: utrNumber || (paymentMode === "DEMO" ? `DEMO-PAY-${Date.now()}` : `UPI-DIRECT-${Date.now()}`),
+          paymentId: utrNumber.trim() || (paymentMode === "DEMO" ? `DEMO-PAY-${Date.now()}` : `UPI-DIRECT-${Date.now()}`),
           orderId: `ORD-${registrationResult.registrationNumber}`,
           isDemo: paymentMode === "DEMO",
         }),
@@ -489,18 +485,21 @@ function RegisterTeamForm() {
         return;
       }
 
-      // Trigger celebration confetti
-      try {
-        confetti({
-          particleCount: 100,
-          spread: 70,
-          origin: { y: 0.6 },
-        });
-      } catch {
-        // ignore
+      setIsPendingApproval(Boolean(data.pendingApproval));
+
+      if (!data.pendingApproval) {
+        try {
+          confetti({
+            particleCount: 100,
+            spread: 70,
+            origin: { y: 0.6 },
+          });
+        } catch {
+          // ignore
+        }
       }
 
-      setStep(8); // Step 8: Confirmation
+      setStep(7); // Step 7: Confirmation / Status
     } catch {
       setError("Payment processing encountered an error.");
     } finally {
@@ -536,8 +535,8 @@ function RegisterTeamForm() {
         </div>
 
         {/* Step Indicator Bar */}
-        <div className="grid grid-cols-8 gap-1.5">
-          {[1, 2, 3, 4, 5, 6, 7, 8].map((s) => (
+        <div className="grid grid-cols-7 gap-1.5">
+          {[1, 2, 3, 4, 5, 6, 7].map((s) => (
             <div
               key={s}
               className={`h-2 rounded-full transition-all ${
@@ -553,18 +552,17 @@ function RegisterTeamForm() {
 
         <div className="flex items-center justify-between text-xs">
           <span className="font-bold text-white">
-            Step {step} of 8:{" "}
+            Step {step} of 7:{" "}
             {step === 1 && "Team Information"}
             {step === 2 && "Team Members"}
             {step === 3 && "Theme Selection"}
             {step === 4 && "Problem Statement"}
-            {step === 5 && "Prototype & URLs"}
-            {step === 6 && "Review Summary"}
-            {step === 7 && "Payment Verification"}
-            {step === 8 && "Registration Confirmation"}
+            {step === 5 && "Review Summary"}
+            {step === 6 && "Payment Verification"}
+            {step === 7 && (isPendingApproval ? "Pending Admin Approval" : "Registration Confirmed")}
           </span>
           <span className="text-muted-foreground text-[11px]">
-            {step < 8 ? "All fields saved directly to database" : "Confirmed"}
+            {step < 7 ? "All fields saved directly to database" : isPendingApproval ? "Awaiting Verification" : "Confirmed"}
           </span>
         </div>
       </div>
@@ -895,94 +893,13 @@ function RegisterTeamForm() {
         </div>
       )}
 
-      {/* STEP 5: Prototype */}
+      {/* STEP 5: Review Summary */}
       {step === 5 && (
-        <div className="bg-card border border-border rounded-2xl p-6 sm:p-8 space-y-6">
-          <div className="space-y-1">
-            <h2 className="text-xl font-bold text-white">Prototype Link & Repositories</h2>
-            <p className="text-xs text-muted-foreground">
-              Provide your prototype or code repository. You can update these links up until code freeze.
-            </p>
-          </div>
-
-          <div className="space-y-4">
-            <div>
-              <label className="text-xs text-muted-foreground block mb-1 font-medium">
-                Prototype URL (Optional at registration — submit at end of sprint)
-              </label>
-              <input
-                type="url"
-                value={prototypeUrl}
-                onChange={(e) => setPrototypeUrl(e.target.value)}
-                placeholder="https://myproject.vercel.app (Leave empty if building during hackathon)"
-                className="w-full bg-[#0D1117] border border-[#30363D] rounded-lg px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-red-500 font-mono"
-              />
-            </div>
-
-            <div>
-              <label className="text-xs text-muted-foreground block mb-1 font-medium">
-                GitHub Repository URL (Optional at registration)
-              </label>
-              <input
-                type="url"
-                value={githubUrl}
-                onChange={(e) => setGithubUrl(e.target.value)}
-                placeholder="https://github.com/team/repository"
-                className="w-full bg-[#0D1117] border border-[#30363D] rounded-lg px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-red-500 font-mono"
-              />
-            </div>
-
-            <div>
-              <label className="text-xs text-muted-foreground block mb-1 font-medium">
-                Demo Video Link (Optional)
-              </label>
-              <input
-                type="url"
-                value={videoUrl}
-                onChange={(e) => setVideoUrl(e.target.value)}
-                placeholder="https://youtube.com/watch?v=..."
-                className="w-full bg-[#111827] border border-border rounded-lg px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-primary font-mono"
-              />
-            </div>
-
-            <div>
-              <label className="text-xs text-muted-foreground block mb-1 font-medium">
-                Project Solution Summary *
-              </label>
-              <textarea
-                rows={3}
-                required
-                value={projectDescription}
-                onChange={(e) => setProjectDescription(e.target.value)}
-                placeholder="Briefly explain the architecture and novel technical approach..."
-                className="w-full bg-[#111827] border border-border rounded-lg px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-primary"
-              />
-            </div>
-
-            <div>
-              <label className="text-xs text-muted-foreground block mb-1 font-medium">
-                Technologies Employed *
-              </label>
-              <input
-                type="text"
-                required
-                value={technologies}
-                onChange={(e) => setTechnologies(e.target.value)}
-                placeholder="Next.js, PyTorch, PostgreSQL, WebSockets"
-                className="w-full bg-[#111827] border border-border rounded-lg px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-primary font-mono"
-              />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* STEP 6: Review Summary */}
-      {step === 6 && (
         <div className="bg-card border border-border rounded-2xl p-6 sm:p-8 space-y-6">
           <div className="space-y-1">
             <h2 className="text-xl font-bold text-white">Review Registration Summary</h2>
             <p className="text-xs text-muted-foreground">
-              Verify your details before proceeding to fee payment.
+              Verify your team roster and track challenge before proceeding to fee payment.
             </p>
           </div>
 
@@ -991,33 +908,34 @@ function RegisterTeamForm() {
               <span className="text-[11px] uppercase font-bold text-primary block">Team Identity</span>
               <p><strong className="text-white">Team:</strong> {teamName}</p>
               <p><strong className="text-white">Leader:</strong> {leaderName} ({leaderEmail})</p>
+              <p><strong className="text-white">Phone:</strong> {leaderPhone}</p>
               <p><strong className="text-white">Institution:</strong> {college}</p>
+              <p><strong className="text-white">Department:</strong> {department || "General"}</p>
               <p><strong className="text-white">Location:</strong> {city}, {state}, {country}</p>
             </div>
 
             <div className="bg-[#111827] p-4 rounded-xl border border-border space-y-2">
-              <span className="text-[11px] uppercase font-bold text-blue-400 block">Selection</span>
-              <p><strong className="text-white">Track:</strong> {selectedTheme?.name}</p>
-              <p><strong className="text-white">Problem:</strong> {selectedProblem?.problemCode} - {selectedProblem?.title}</p>
+              <span className="text-[11px] uppercase font-bold text-blue-400 block">Competition Selection</span>
+              <p><strong className="text-white">Track:</strong> {selectedTheme?.name || "General"}</p>
+              <p><strong className="text-white">Challenge:</strong> {selectedProblem?.problemCode} - {selectedProblem?.title}</p>
               <p><strong className="text-white">Squad Size:</strong> {members.length} Members</p>
-              <p><strong className="text-white">Fee:</strong> {formatCurrency(hackathon?.registrationFee || 499, hackathon?.currency)}</p>
+              <p><strong className="text-white">Registration Fee:</strong> {formatCurrency(hackathon?.registrationFee || 499, hackathon?.currency)}</p>
             </div>
           </div>
 
-          <div className="bg-[#111827] p-4 rounded-xl border border-border space-y-2 text-xs">
-            <span className="text-[11px] uppercase font-bold text-emerald-400 block">Deliverables Provided</span>
-            <p className="font-mono text-muted-foreground truncate">
-              <strong className="text-white">Prototype:</strong> {prototypeUrl}
-            </p>
-            <p className="font-mono text-muted-foreground truncate">
-              <strong className="text-white">GitHub:</strong> {githubUrl}
+          <div className="bg-[#111827] p-4 rounded-xl border border-[#30363D] space-y-2 text-xs">
+            <span className="text-[11px] uppercase font-bold text-teal-400 flex items-center gap-1.5">
+              <span>🚀</span> Deliverables & Final Project Submission
+            </span>
+            <p className="text-muted-foreground leading-relaxed">
+              Prototype URLs, GitHub repositories, and presentation slide decks are <strong className="text-white">not required</strong> during initial team registration. Your squad will build your solution during the hackathon and submit all final deliverables through the <strong className="text-teal-400">Final Submission page</strong> on your dashboard before code freeze.
             </p>
           </div>
         </div>
       )}
 
-      {/* STEP 7: Payment */}
-      {step === 7 && registrationResult && (
+      {/* STEP 6: Payment Verification */}
+      {step === 6 && registrationResult && (
         <div className="bg-[#161B22] border border-[#30363D] rounded-2xl p-6 sm:p-8 space-y-6">
           <div className="text-center space-y-2">
             <div className="w-12 h-12 rounded-2xl bg-red-600/20 border border-red-500/30 flex items-center justify-center text-red-500 mx-auto mb-2">
@@ -1067,8 +985,8 @@ function RegisterTeamForm() {
                     : "bg-[#0D1117] border-[#30363D] text-muted-foreground hover:border-[#4B5563]"
                 }`}
               >
-                <strong className="block text-white text-xs mb-0.5">UPI / Bank Transfer</strong>
-                <span className="text-[10px] text-muted-foreground">Owner Account & QR</span>
+                <strong className="block text-white text-xs mb-0.5">UPI / QR Code</strong>
+                <span className="text-[10px] text-muted-foreground">Direct Organizer QR</span>
               </button>
 
               <button
@@ -1100,16 +1018,45 @@ function RegisterTeamForm() {
 
             {/* Direct UPI / Owner Bank Details View */}
             {paymentMode === "DIRECT_UPI" && (
-              <div className="p-5 rounded-2xl bg-[#0D1117] border border-[#30363D] space-y-4">
+              <div className="p-5 rounded-2xl bg-[#0D1117] border border-[#30363D] space-y-5">
                 <div className="flex items-center justify-between border-b border-[#30363D] pb-2">
                   <span className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
                     <Building className="w-4 h-4 text-red-500" />
-                    Official Organizer Bank & UPI Details
+                    Official Organizer UPI QR & Bank Details
                   </span>
-                  <span className="text-[10px] text-red-400 font-mono">VERIFIED ACCOUNT</span>
+                  <span className="text-[10px] text-emerald-400 font-mono font-bold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/30">
+                    VERIFIED ACCOUNT
+                  </span>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                {/* Organizer Uploaded QR Code Display */}
+                <div className="flex flex-col items-center justify-center p-5 bg-[#161B22] rounded-2xl border border-red-500/30 space-y-3">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-red-400">
+                    Scan to Pay {formatCurrency(registrationResult.amount, registrationResult.currency)}
+                  </span>
+
+                  {ownerAccount.owner_qr_code_image ? (
+                    <div className="w-60 h-60 rounded-2xl bg-white p-2.5 flex items-center justify-center shadow-2xl border border-white/20">
+                      <img
+                        src={ownerAccount.owner_qr_code_image}
+                        alt="Official Hackathon UPI QR Code"
+                        className="w-full h-full object-contain rounded-xl"
+                      />
+                    </div>
+                  ) : (
+                    <div className="w-52 h-52 rounded-2xl bg-white p-4 flex flex-col items-center justify-center shadow-2xl border border-white/20">
+                      <QrCode className="w-full h-full text-black" />
+                    </div>
+                  )}
+
+                  <p className="text-[11px] text-muted-foreground text-center max-w-sm">
+                    Open Google Pay, PhonePe, Paytm, BHIM, or any UPI app, scan the QR code above, and complete your transfer of{" "}
+                    <strong className="text-white font-mono">{formatCurrency(registrationResult.amount, registrationResult.currency)}</strong>.
+                  </p>
+                </div>
+
+                {/* Bank & UPI VPA Details */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs pt-1">
                   <div className="space-y-1">
                     <span className="text-[10px] text-muted-foreground block">Beneficiary Name</span>
                     <span className="font-bold text-white">{ownerAccount.owner_account_name}</span>
@@ -1151,7 +1098,7 @@ function RegisterTeamForm() {
                   </div>
                 </div>
 
-                {/* UPI VPA & QR Scanner */}
+                {/* UPI ID with Copy Button */}
                 <div className="p-3.5 rounded-xl bg-[#161B22] border border-[#30363D] flex items-center justify-between gap-4">
                   <div>
                     <span className="text-[10px] text-muted-foreground block">Official UPI ID</span>
@@ -1162,46 +1109,47 @@ function RegisterTeamForm() {
                         onClick={() => handleCopy(ownerAccount.owner_upi_id, "upi")}
                         className="text-muted-foreground hover:text-white"
                       >
-                        <Copy className="w-3 h-3" />
+                        <Copy className="w-3.5 h-3.5" />
                       </button>
                     </div>
-                    {copiedField && (
-                      <span className="text-[10px] text-emerald-400">Copied to clipboard!</span>
+                    {copiedField === "upi" && (
+                      <span className="text-[10px] text-emerald-400">UPI ID copied to clipboard!</span>
                     )}
                   </div>
-                  <div className="w-10 h-10 rounded-lg bg-white p-1 flex items-center justify-center flex-shrink-0">
-                    <QrCode className="w-8 h-8 text-black" />
-                  </div>
+                  <span className="text-[10px] font-mono text-muted-foreground bg-[#0D1117] px-2.5 py-1 rounded border border-[#30363D]">
+                    Any UPI App
+                  </span>
                 </div>
 
-                {/* UTR Input */}
-                <div className="space-y-1.5 pt-2 border-t border-[#30363D]">
-                  <label className="text-xs text-muted-foreground block font-medium">
-                    Enter UTR / UPI Transaction Reference Number *
+                {/* 12-Digit UTR Input */}
+                <div className="space-y-2 pt-3 border-t border-[#30363D]">
+                  <label className="text-xs font-bold text-white block">
+                    Enter 12-digit UTR / UPI Transaction Reference Number *
                   </label>
                   <input
                     type="text"
+                    required
                     value={utrNumber}
                     onChange={(e) => setUtrNumber(e.target.value)}
-                    placeholder="e.g. 428910294829 or UPI Ref"
-                    className="w-full bg-[#161B22] border border-[#30363D] rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-red-500 font-mono"
+                    placeholder="e.g. 428910294829 (From PhonePe / GPay / Paytm receipt)"
+                    className="w-full bg-[#161B22] border border-red-500/50 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-red-500 font-mono font-bold tracking-wider"
                   />
-                  <p className="text-[10px] text-muted-foreground">
-                    Transfer ₹{registrationResult.amount} to the UPI ID or Account above and enter the 12-digit UTR reference number.
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    💡 After transferring ₹{registrationResult.amount}, locate the 12-digit UTR or Reference number on your UPI app transaction receipt and enter it above. The HackNexus organizers will verify your reference in the admin panel and approve your squad.
                   </p>
                 </div>
               </div>
             )}
 
             {paymentMode === "DEMO" && (
-              <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-300">
-                ⚠️ <strong>DEMO PAYMENT MODE:</strong> No real money is charged. Click Complete Payment to verify the database transaction.
+              <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-300 space-y-1">
+                <p>⚠️ <strong>DEMO TEST MODE:</strong> No real money is charged. Click below to instantly confirm registration in the database for demonstration and testing purposes.</p>
               </div>
             )}
 
             {paymentMode === "RAZORPAY" && (
-              <div className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/30 text-xs text-red-300">
-                🔒 <strong>RAZORPAY GATEWAY:</strong> Simulated and production test mode active. Click Complete Payment to finalize.
+              <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-xs text-red-300 space-y-1">
+                <p>🔒 <strong>RAZORPAY GATEWAY:</strong> Click below to open secure Razorpay checkout for UPI, Credit/Debit Cards, or NetBanking.</p>
               </div>
             )}
           </div>
@@ -1211,13 +1159,17 @@ function RegisterTeamForm() {
               type="button"
               disabled={submitting}
               onClick={handleCompletePayment}
-              className="w-full py-3.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs shadow-xl shadow-red-600/30 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+              className="w-full py-3.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs shadow-xl shadow-red-600/30 transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
             >
               {submitting ? (
-                <span>Verifying Transaction...</span>
+                <span>Submitting Transaction...</span>
               ) : (
                 <>
-                  <span>Pay {formatCurrency(registrationResult.amount, registrationResult.currency)} & Confirm Registration</span>
+                  <span>
+                    {paymentMode === "DIRECT_UPI"
+                      ? "Submit UTR & Complete Registration"
+                      : `Pay ${formatCurrency(registrationResult.amount, registrationResult.currency)} & Confirm Registration`}
+                  </span>
                   <CheckCircle2 className="w-4 h-4" />
                 </>
               )}
@@ -1226,70 +1178,133 @@ function RegisterTeamForm() {
         </div>
       )}
 
-      {/* STEP 8: Confirmation */}
-      {step === 8 && registrationResult && (
-        <div className="bg-card border border-emerald-500/30 rounded-2xl p-6 sm:p-8 space-y-6 text-center">
-          <div className="w-16 h-16 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto shadow-lg shadow-emerald-500/20">
-            <CheckCircle2 className="w-8 h-8" />
-          </div>
+      {/* STEP 7: Confirmation / Status */}
+      {step === 7 && registrationResult && (
+        <div className="space-y-6">
+          {isPendingApproval ? (
+            /* PENDING ADMIN APPROVAL SCREEN (DIRECT_UPI) */
+            <div className="bg-card border border-amber-500/40 rounded-2xl p-6 sm:p-8 space-y-6 text-center shadow-2xl">
+              <div className="w-16 h-16 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center mx-auto shadow-lg shadow-amber-500/20">
+                <Clock className="w-8 h-8" />
+              </div>
 
-          <div className="space-y-2">
-            <span className="text-[11px] font-bold uppercase tracking-widest text-emerald-400">
-              Payment & Registration Verified
-            </span>
-            <h2 className="text-3xl font-extrabold text-white">Welcome to {hackathon?.name}!</h2>
-            <p className="text-xs text-muted-foreground max-w-md mx-auto">
-              Your squad <strong className="text-white">{teamName}</strong> has been officially confirmed.
-            </p>
-          </div>
+              <div className="space-y-2">
+                <span className="text-[11px] font-bold uppercase tracking-widest text-amber-400 bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/30 inline-block">
+                  Payment Reference Submitted — Pending Admin Verification
+                </span>
+                <h2 className="text-2xl sm:text-3xl font-extrabold text-white">
+                  Registration Received for {teamName}!
+                </h2>
+                <p className="text-xs text-muted-foreground max-w-lg mx-auto leading-relaxed">
+                  Thank you! Your payment reference has been recorded. The HackNexus organizers are reviewing your transaction reference against their bank account. Once approved in the admin panel, your squad registration will be confirmed.
+                </p>
+              </div>
 
-          {/* Official Registration Receipt Card */}
-          <div className="bg-[#111827] border border-border rounded-xl p-6 max-w-lg mx-auto text-left space-y-4 font-mono text-xs">
-            <div className="flex justify-between items-center pb-3 border-b border-border">
-              <span className="text-muted-foreground">OFFICIAL REGISTRATION ID:</span>
-              <span className="text-base font-bold text-teal-400">{registrationResult.registrationNumber}</span>
+              {/* Official Registration Receipt Card */}
+              <div className="bg-[#111827] border border-border rounded-xl p-6 max-w-lg mx-auto text-left space-y-3 font-mono text-xs">
+                <div className="flex justify-between items-center pb-3 border-b border-border">
+                  <span className="text-muted-foreground">OFFICIAL REGISTRATION ID:</span>
+                  <span className="text-base font-bold text-teal-400">{registrationResult.registrationNumber}</span>
+                </div>
+
+                <div className="space-y-1.5 text-muted-foreground">
+                  <p><strong className="text-white">Squad Name:</strong> {teamName}</p>
+                  <p><strong className="text-white">Team Leader:</strong> {leaderName} ({leaderEmail})</p>
+                  <p><strong className="text-white">Institution:</strong> {college}</p>
+                  <p><strong className="text-white">Track:</strong> {selectedTheme?.name || "General"}</p>
+                  <p><strong className="text-white">Challenge:</strong> {selectedProblem?.problemCode}</p>
+                  <p><strong className="text-white">Amount:</strong> {formatCurrency(registrationResult.amount, registrationResult.currency)}</p>
+                  <p><strong className="text-white">Submitted UTR / Ref:</strong> <span className="text-amber-400 font-bold">{utrNumber}</span></p>
+                  <p><strong className="text-white">Approval Status:</strong> <span className="text-amber-400 font-bold">Pending Admin Verification</span></p>
+                  <p><strong className="text-white">Prototype Submission:</strong> <span className="text-teal-400">At end of sprint in Final Submission page</span></p>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-4">
+                <Link
+                  href="/dashboard"
+                  className="w-full sm:w-auto px-6 py-3 rounded-xl bg-primary hover:bg-primary-hover text-white font-bold text-xs shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2"
+                >
+                  <span>Go to Participant Dashboard</span>
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="w-full sm:w-auto px-5 py-3 rounded-xl bg-card border border-border text-white hover:bg-muted/40 font-semibold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>Download / Print Receipt</span>
+                </button>
+              </div>
             </div>
+          ) : (
+            /* INSTANTLY CONFIRMED SCREEN (DEMO / RAZORPAY) */
+            <div className="bg-card border border-emerald-500/30 rounded-2xl p-6 sm:p-8 space-y-6 text-center">
+              <div className="w-16 h-16 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto shadow-lg shadow-emerald-500/20">
+                <CheckCircle2 className="w-8 h-8" />
+              </div>
 
-            <div className="space-y-1.5 text-muted-foreground">
-              <p><strong className="text-white">Team:</strong> {teamName}</p>
-              <p><strong className="text-white">Leader:</strong> {leaderName} ({leaderEmail})</p>
-              <p><strong className="text-white">Institution:</strong> {college}</p>
-              <p><strong className="text-white">Theme:</strong> {selectedTheme?.name}</p>
-              <p><strong className="text-white">Problem:</strong> {selectedProblem?.problemCode}</p>
-              <p><strong className="text-white">Amount Paid:</strong> {formatCurrency(registrationResult.amount, registrationResult.currency)}</p>
-              <p><strong className="text-white">Transaction:</strong> {registrationResult.transactionId}</p>
+              <div className="space-y-2">
+                <span className="text-[11px] font-bold uppercase tracking-widest text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/30 inline-block">
+                  Payment & Registration Verified
+                </span>
+                <h2 className="text-3xl font-extrabold text-white">Welcome to {hackathon?.name}!</h2>
+                <p className="text-xs text-muted-foreground max-w-md mx-auto">
+                  Your squad <strong className="text-white">{teamName}</strong> has been officially confirmed.
+                </p>
+              </div>
+
+              {/* Official Registration Receipt Card */}
+              <div className="bg-[#111827] border border-border rounded-xl p-6 max-w-lg mx-auto text-left space-y-4 font-mono text-xs">
+                <div className="flex justify-between items-center pb-3 border-b border-border">
+                  <span className="text-muted-foreground">OFFICIAL REGISTRATION ID:</span>
+                  <span className="text-base font-bold text-teal-400">{registrationResult.registrationNumber}</span>
+                </div>
+
+                <div className="space-y-1.5 text-muted-foreground">
+                  <p><strong className="text-white">Team:</strong> {teamName}</p>
+                  <p><strong className="text-white">Leader:</strong> {leaderName} ({leaderEmail})</p>
+                  <p><strong className="text-white">Institution:</strong> {college}</p>
+                  <p><strong className="text-white">Theme:</strong> {selectedTheme?.name}</p>
+                  <p><strong className="text-white">Problem:</strong> {selectedProblem?.problemCode}</p>
+                  <p><strong className="text-white">Amount Paid:</strong> {formatCurrency(registrationResult.amount, registrationResult.currency)}</p>
+                  <p><strong className="text-white">Transaction:</strong> {registrationResult.transactionId}</p>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-4">
+                <Link
+                  href="/dashboard"
+                  className="w-full sm:w-auto px-6 py-3 rounded-xl bg-primary hover:bg-primary-hover text-white font-bold text-xs shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2"
+                >
+                  <span>Go to Participant Dashboard</span>
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="w-full sm:w-auto px-5 py-3 rounded-xl bg-card border border-border text-white hover:bg-muted/40 font-semibold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>Download / Print Receipt</span>
+                </button>
+              </div>
             </div>
-          </div>
-
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-4">
-            <Link
-              href="/dashboard"
-              className="w-full sm:w-auto px-6 py-3 rounded-xl bg-primary hover:bg-primary-hover text-white font-bold text-xs shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2"
-            >
-              <span>Go to Participant Dashboard</span>
-              <ArrowRight className="w-4 h-4" />
-            </Link>
-
-            <button
-              type="button"
-              onClick={() => window.print()}
-              className="w-full sm:w-auto px-5 py-3 rounded-xl bg-card border border-border text-white hover:bg-muted/40 font-semibold text-xs transition-all flex items-center justify-center gap-2"
-            >
-              <Download className="w-4 h-4" />
-              <span>Download / Print Receipt</span>
-            </button>
-          </div>
+          )}
         </div>
       )}
 
-      {/* Navigation Footer for Steps 1 - 6 */}
-      {step < 7 && (
+      {/* Navigation Footer for Steps 1 - 5 */}
+      {step < 6 && (
         <div className="flex items-center justify-between pt-4 border-t border-border">
           {step > 1 ? (
             <button
               type="button"
               onClick={() => setStep(step - 1)}
-              className="px-4 py-2 rounded-lg bg-card hover:bg-muted/40 border border-border text-xs text-white font-semibold flex items-center gap-1.5 transition-colors"
+              className="px-4 py-2 rounded-lg bg-card hover:bg-muted/40 border border-border text-xs text-white font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
             >
               <ArrowLeft className="w-3.5 h-3.5" /> Back
             </button>
@@ -1301,13 +1316,13 @@ function RegisterTeamForm() {
             type="button"
             disabled={submitting}
             onClick={handleNext}
-            className="px-6 py-2.5 rounded-lg bg-primary hover:bg-primary-hover text-white text-xs font-bold shadow-md shadow-primary/20 flex items-center gap-1.5 transition-all disabled:opacity-50"
+            className="px-6 py-2.5 rounded-lg bg-primary hover:bg-primary-hover text-white text-xs font-bold shadow-md shadow-primary/20 flex items-center gap-1.5 transition-all disabled:opacity-50 cursor-pointer"
           >
             {submitting ? (
               <span>Processing...</span>
             ) : (
               <>
-                <span>{step === 6 ? "Proceed to Payment" : "Next Step"}</span>
+                <span>{step === 5 ? "Proceed to Payment" : "Next Step"}</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </>
             )}

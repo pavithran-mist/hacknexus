@@ -158,16 +158,16 @@ export async function POST(req: NextRequest) {
         });
       }
 
-      // Create Prototype Record
+      // Create Initial Placeholder Prototype Record (To be submitted at end of hackathon)
       const prototype = await tx.prototype.create({
         data: {
           teamId: team.id,
           prototypeUrl: data.prototypeUrl || "",
           githubUrl: data.githubUrl || "",
           videoUrl: data.videoUrl || null,
-          projectDescription: data.projectDescription,
-          technologies: data.technologies,
-          status: data.prototypeUrl ? "SUBMITTED" : "NOT_SUBMITTED",
+          projectDescription: data.projectDescription || "",
+          technologies: data.technologies || "",
+          status: "NOT_SUBMITTED",
         },
       });
 
