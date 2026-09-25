@@ -25,8 +25,8 @@ export default async function FAQPage() {
       category: "Payment",
     },
     {
-      question: "Can I submit my prototype link during registration?",
-      answer: "Yes, you can provide your initial prototype URL, GitHub repository, and video URLs during registration and update them up until code freeze from your Participant Dashboard.",
+      question: "When and where do I submit my prototype and project files?",
+      answer: "Prototypes, GitHub repositories, and video demos are submitted through your Participant Dashboard Final Submission page as you approach code freeze.",
       category: "Submission",
     },
     {

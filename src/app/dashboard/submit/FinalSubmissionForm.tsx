@@ -166,7 +166,7 @@ export default function FinalSubmissionForm({
       {/* PROCESSING EXPERIENCE MODAL */}
       {isProcessing && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-          <div className="bg-card border border-border rounded-2xl p-6 sm:p-8 max-w-lg w-full space-y-6 shadow-2xl text-center relative overflow-hidden">
+          <div className="bg-card border border-border rounded-2xl p-6 sm:p-8 max-w-lg w-full max-h-[90vh] overflow-y-auto space-y-6 shadow-2xl text-center relative overflow-hidden">
             {/* Speed toggle for demo feedback */}
             <div className="flex items-center justify-between text-xs pb-3 border-b border-border">
               <span className="text-[11px] font-mono text-muted-foreground flex items-center gap-1">
@@ -378,11 +378,11 @@ export default function FinalSubmissionForm({
           </div>
         </div>
 
-        <div className="pt-4 border-t border-border flex items-center justify-end gap-3">
+        <div className="pt-4 border-t border-border flex items-center justify-end">
           <button
             type="submit"
             disabled={submitting}
-            className="px-6 py-3 rounded-xl bg-primary hover:bg-primary-hover text-white font-bold text-xs shadow-lg shadow-primary/20 transition-all flex items-center gap-2 disabled:opacity-50"
+            className="w-full sm:w-auto justify-center px-6 py-3 rounded-xl bg-primary hover:bg-primary-hover text-white font-bold text-xs shadow-lg shadow-primary/20 transition-all flex items-center gap-2 disabled:opacity-50"
           >
             <Trophy className="w-4 h-4" />
             <span>Submit Deliverable for Judging</span>

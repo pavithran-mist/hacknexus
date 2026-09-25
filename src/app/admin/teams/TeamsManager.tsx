@@ -329,7 +329,7 @@ export default function TeamsManager({
               </button>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 text-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
               <div className="bg-[#111827] p-4 rounded-xl border border-border space-y-1.5">
                 <span className="text-[10px] font-bold uppercase text-primary block">Institution Details</span>
                 <p><strong className="text-white">College:</strong> {viewingTeam.college}</p>
@@ -374,24 +374,24 @@ export default function TeamsManager({
               </div>
             )}
 
-            <div className="flex items-center justify-between pt-4 border-t border-border">
-              <div className="flex gap-2">
+            <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-4 border-t border-border">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <button
                   onClick={() => handleStatusChange(viewingTeam.id, "APPROVED")}
-                  className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold"
+                  className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold text-center"
                 >
                   Approve Team
                 </button>
                 <button
                   onClick={() => handleStatusChange(viewingTeam.id, "REJECTED")}
-                  className="px-3 py-1.5 rounded-lg bg-danger hover:bg-rose-500 text-white text-xs font-bold"
+                  className="px-3 py-1.5 rounded-lg bg-danger hover:bg-rose-500 text-white text-xs font-bold text-center"
                 >
                   Reject Team
                 </button>
               </div>
               <button
                 onClick={() => setViewingTeam(null)}
-                className="px-4 py-2 rounded-lg bg-card border border-border text-white text-xs font-semibold"
+                className="px-4 py-2 rounded-lg bg-card border border-border text-white text-xs font-semibold text-center"
               >
                 Close
               </button>

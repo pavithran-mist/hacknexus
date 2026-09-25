@@ -79,7 +79,7 @@ export default function PrototypeModalClient({
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-          <div className="bg-card border border-border rounded-2xl p-6 sm:p-8 max-w-lg w-full space-y-6 shadow-2xl relative">
+          <div className="bg-card border border-border rounded-2xl p-6 sm:p-8 max-w-lg w-full max-h-[90vh] overflow-y-auto space-y-6 shadow-2xl relative">
             <div className="flex items-center justify-between pb-3 border-b border-border">
               <h3 className="font-bold text-base text-white">Update Prototype Deliverables</h3>
               <button

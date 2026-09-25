@@ -529,10 +529,10 @@ export default async function HomePage() {
 
           <div className="bg-card border border-border rounded-xl p-5 space-y-2">
             <h4 className="text-sm font-bold text-white flex items-center gap-2">
-              <HelpCircle className="w-4 h-4 text-primary" /> Can I submit my prototype link during registration?
+              <HelpCircle className="w-4 h-4 text-primary" /> When and where do I submit my prototype and project files?
             </h4>
             <p className="text-xs text-muted-foreground leading-relaxed pl-6">
-              Yes, you can provide your initial prototype, GitHub repository, and video URLs during registration and update them up until code freeze.
+              Prototypes, GitHub repositories, and video demos are submitted through your Participant Dashboard Final Submission page as you approach code freeze.
             </p>
           </div>
         </div>

@@ -186,9 +186,9 @@ export default function PaymentsManager({ initialPayments }: { initialPayments: 
       )}
 
       {/* Filter and Action Bar */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-card border border-border p-3.5 rounded-xl">
-        <div className="flex items-center gap-3 w-full sm:w-auto flex-1">
-          <div className="relative flex-1 max-w-xs">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-card border border-border p-3.5 rounded-xl">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto flex-1">
+          <div className="relative flex-1 sm:max-w-xs">
             <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input
               type="text"
@@ -214,7 +214,7 @@ export default function PaymentsManager({ initialPayments }: { initialPayments: 
 
         <a
           href="/api/admin/export?format=csv"
-          className="px-3.5 py-1.5 rounded-lg bg-[#111827] border border-border text-white text-xs font-semibold hover:border-primary transition-colors flex items-center gap-1.5"
+          className="w-full sm:w-auto justify-center px-3.5 py-1.5 rounded-lg bg-[#111827] border border-border text-white text-xs font-semibold hover:border-primary transition-colors flex items-center gap-1.5"
         >
           <Download className="w-3.5 h-3.5 text-primary" /> Export CSV
         </a>
@@ -332,7 +332,7 @@ export default function PaymentsManager({ initialPayments }: { initialPayments: 
       {/* Manual Adjustment & Refund Modal with mandatory audit justification */}
       {adjustingPayment && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-          <div className="bg-card border border-border rounded-2xl p-6 sm:p-8 max-w-md w-full space-y-6 shadow-2xl relative">
+          <div className="bg-card border border-border rounded-2xl p-6 sm:p-8 max-w-md w-full max-h-[90vh] overflow-y-auto space-y-6 shadow-2xl relative">
             <div className="flex items-center justify-between pb-3 border-b border-border">
               <h3 className="text-base font-bold text-white flex items-center gap-2">
                 <ShieldAlert className="w-5 h-5 text-amber-400" />
@@ -376,18 +376,18 @@ export default function PaymentsManager({ initialPayments }: { initialPayments: 
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-border">
+              <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-3 pt-3 border-t border-border">
                 <button
                   type="button"
                   onClick={() => setAdjustingPayment(null)}
-                  className="px-4 py-2 rounded-lg bg-card border border-border text-white text-xs font-semibold"
+                  className="px-4 py-2 rounded-lg bg-card border border-border text-white text-xs font-semibold text-center"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className={`px-5 py-2 rounded-lg text-white text-xs font-bold transition-all disabled:opacity-50 ${
+                  className={`px-5 py-2 rounded-lg text-white text-xs font-bold transition-all text-center disabled:opacity-50 ${
                     adjustAction === "MANUAL_SUCCESS"
                       ? "bg-primary hover:bg-primary-hover"
                       : "bg-danger hover:bg-rose-500"

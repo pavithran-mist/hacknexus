@@ -550,7 +550,7 @@ function RegisterTeamForm() {
           ))}
         </div>
 
-        <div className="flex items-center justify-between text-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-xs">
           <span className="font-bold text-white">
             Step {step} of 7:{" "}
             {step === 1 && "Team Information"}
@@ -1036,7 +1036,7 @@ function RegisterTeamForm() {
                   </span>
 
                   {ownerAccount.owner_qr_code_image ? (
-                    <div className="w-60 h-60 rounded-2xl bg-white p-2.5 flex items-center justify-center shadow-2xl border border-white/20">
+                    <div className="w-52 sm:w-60 h-52 sm:h-60 max-w-full rounded-2xl bg-white p-2.5 flex items-center justify-center shadow-2xl border border-white/20">
                       <img
                         src={ownerAccount.owner_qr_code_image}
                         alt="Official Hackathon UPI QR Code"
@@ -1044,7 +1044,7 @@ function RegisterTeamForm() {
                       />
                     </div>
                   ) : (
-                    <div className="w-52 h-52 rounded-2xl bg-white p-4 flex flex-col items-center justify-center shadow-2xl border border-white/20">
+                    <div className="w-48 sm:w-52 h-48 sm:h-52 max-w-full rounded-2xl bg-white p-4 flex flex-col items-center justify-center shadow-2xl border border-white/20">
                       <QrCode className="w-full h-full text-black" />
                     </div>
                   )}

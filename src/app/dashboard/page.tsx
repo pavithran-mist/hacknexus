@@ -290,7 +290,7 @@ export default async function ParticipantDashboard() {
       </div>
 
       {/* 4-Step Hackathon Lifecycle Tracker */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {/* 1. Registration & Payment */}
         <div className="bg-[#161B22] border border-[#30363D] rounded-xl p-4 space-y-2">
           <div className="flex items-center justify-between">
@@ -403,7 +403,7 @@ export default async function ParticipantDashboard() {
 
           {/* Prototype Checkpoint Card */}
           <div className="bg-[#161B22] border border-[#30363D] rounded-2xl p-6 space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <h2 className="text-sm font-bold uppercase tracking-wider text-red-500 flex items-center gap-2">
                   <Code2 className="w-4 h-4" /> Prototype Submission (Mid-Sprint)
@@ -482,7 +482,7 @@ export default async function ParticipantDashboard() {
 
           {/* Final Project Submission Card (End of Hackathon) */}
           <div className="bg-[#161B22] border border-[#30363D] rounded-2xl p-6 space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <h2 className="text-sm font-bold uppercase tracking-wider text-red-500 flex items-center gap-2">
                   <Trophy className="w-4 h-4" /> Final Project Submission (Finish Hackathon)

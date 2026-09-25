@@ -21,6 +21,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Shield,
+  X,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -44,20 +45,27 @@ const NAV_ITEMS = [
   { name: "Platform Settings", href: "/admin/settings", icon: Settings },
 ];
 
-export default function AdminSidebar() {
+interface AdminSidebarProps {
+  isMobile?: boolean;
+  onCloseMobile?: () => void;
+}
+
+export default function AdminSidebar({ isMobile = false, onCloseMobile }: AdminSidebarProps) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
 
   return (
     <aside
-      className={`bg-[#0D1117] border-r border-border min-h-screen flex flex-col transition-all duration-300 z-30 ${
-        collapsed ? "w-16" : "w-64"
+      className={`bg-[#0D1117] border-r border-border flex flex-col transition-all duration-300 z-30 ${
+        isMobile
+          ? "w-full h-full"
+          : `min-h-screen ${collapsed ? "w-16" : "w-64"}`
       }`}
     >
       {/* Brand Header */}
       <div className="h-16 px-4 border-b border-border flex items-center justify-between">
-        {!collapsed && (
-          <Link href="/admin" className="flex items-center gap-2">
+        {(!collapsed || isMobile) && (
+          <Link href="/admin" onClick={onCloseMobile} className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-rose-600 flex items-center justify-center text-white font-bold shadow-md shadow-primary/20">
               <Shield className="w-4 h-4" />
             </div>
@@ -72,13 +80,23 @@ export default function AdminSidebar() {
           </Link>
         )}
 
-        <button
-          onClick={() => setCollapsed(!collapsed)}
-          className="p-1.5 rounded-lg text-muted-foreground hover:text-white hover:bg-card ml-auto transition-colors"
-          aria-label="Toggle sidebar"
-        >
-          {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
-        </button>
+        {isMobile ? (
+          <button
+            onClick={onCloseMobile}
+            className="p-1.5 rounded-lg text-muted-foreground hover:text-white hover:bg-card ml-auto transition-colors cursor-pointer"
+            aria-label="Close navigation menu"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        ) : (
+          <button
+            onClick={() => setCollapsed(!collapsed)}
+            className="p-1.5 rounded-lg text-muted-foreground hover:text-white hover:bg-card ml-auto transition-colors cursor-pointer"
+            aria-label="Toggle sidebar"
+          >
+            {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+          </button>
+        )}
       </div>
 
       {/* Nav List */}
@@ -94,7 +112,8 @@ export default function AdminSidebar() {
             <Link
               key={item.name}
               href={item.href}
-              title={collapsed ? item.name : undefined}
+              onClick={isMobile ? onCloseMobile : undefined}
+              title={collapsed && !isMobile ? item.name : undefined}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all ${
                 isActive
                   ? "bg-primary text-white shadow-md shadow-primary/20"
@@ -102,7 +121,7 @@ export default function AdminSidebar() {
               }`}
             >
               <Icon className="w-4 h-4 flex-shrink-0" />
-              {!collapsed && <span>{item.name}</span>}
+              {(!collapsed || isMobile) && <span>{item.name}</span>}
             </Link>
           );
         })}
@@ -112,10 +131,11 @@ export default function AdminSidebar() {
       <div className="p-3 border-t border-border">
         <Link
           href="/"
+          onClick={isMobile ? onCloseMobile : undefined}
           className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-white hover:bg-card transition-colors"
         >
           <Globe className="w-4 h-4" />
-          {!collapsed && <span>Public Website →</span>}
+          {(!collapsed || isMobile) && <span>Public Website →</span>}
         </Link>
       </div>
     </aside>
