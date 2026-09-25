@@ -24,17 +24,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const isEmail = identifier.includes("@");
+    const normalized = identifier.toLowerCase();
     const user = await prisma.user.findFirst({
-      where: isEmail
-        ? { email: identifier.toLowerCase() }
-        : {
-            OR: [
-              { username: identifier.toLowerCase() },
-              { email: identifier.toLowerCase() },
-              { name: { equals: identifier } },
-            ],
-          },
+      where: {
+        OR: [
+          { email: normalized },
+          { username: normalized },
+          { name: { equals: identifier } },
+        ],
+      },
     });
 
     if (!user) {
