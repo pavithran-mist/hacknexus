@@ -18,9 +18,9 @@ export const teamMemberSchema = z.object({
   name: z.string().min(2, "Member name is required"),
   email: z.string().email("Valid member email is required"),
   phone: z.string().optional(),
-  college: z.string().min(2, "College is required"),
-  department: z.string().min(2, "Department is required"),
-  role: z.enum(["DEVELOPER", "DESIGNER", "AIML", "RESEARCHER", "OTHER"]),
+  college: z.string().optional().default(""),
+  department: z.string().optional().default(""),
+  role: z.enum(["DEVELOPER", "DESIGNER", "AIML", "RESEARCHER", "OTHER"]).default("DEVELOPER"),
   isLeader: z.boolean().default(false),
 });
 

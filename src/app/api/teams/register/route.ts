@@ -150,10 +150,9 @@ export async function POST(req: NextRequest) {
             teamId: team.id,
             name: m.name,
             email: m.email.toLowerCase(),
-            phone: m.phone || null,
-            college: m.college,
-            department: m.department,
-            role: m.role,
+            college: m.college || data.college,
+            department: m.department || data.department,
+            role: m.role || "DEVELOPER",
             isLeader: m.isLeader || false,
           },
         });

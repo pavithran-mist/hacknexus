@@ -229,23 +229,55 @@ function RegisterTeamForm() {
         setError("Please fill out all required team information fields.");
         return;
       }
+      // Synchronize leader into members[0] and set default college
+      setMembers((prev) => {
+        const otherMembers = prev.filter((m) => !m.isLeader);
+        const leaderMember: TeamMember = {
+          name: leaderName,
+          email: leaderEmail,
+          phone: leaderPhone,
+          college: college || "Institution",
+          department: department || "General",
+          role: prev[0]?.role || "DEVELOPER",
+          isLeader: true,
+        };
+        const updatedOthers = otherMembers.map((m) => ({
+          ...m,
+          college: m.college?.trim() || college || "Institution",
+          department: m.department?.trim() || department || "General",
+        }));
+        return [leaderMember, ...updatedOthers];
+      });
       setStep(2);
     } else if (step === 2) {
       if (!hackathon) return;
       if (members.length < hackathon.minTeamSize) {
-        setError(`A minimum of ${hackathon.minTeamSize} team members is required.`);
+        setError(`A minimum of ${hackathon.minTeamSize} team members is required. Please click "Add Member" to add ${hackathon.minTeamSize - members.length} more member(s).`);
         return;
       }
       if (members.length > hackathon.maxTeamSize) {
         setError(`A maximum of ${hackathon.maxTeamSize} team members is permitted.`);
         return;
       }
-      for (const m of members) {
-        if (!m.name || !m.email || !m.college) {
-          setError("Please ensure every member has a name, valid email, and college.");
+      for (let i = 0; i < members.length; i++) {
+        const m = members[i];
+        if (!m.name || !m.name.trim()) {
+          setError(`Please enter the Full Name for Member ${i + 1}.`);
+          return;
+        }
+        if (!m.email || !m.email.trim() || !m.email.includes("@")) {
+          setError(`Please enter a valid Email Address for Member ${i + 1}.`);
           return;
         }
       }
+      // Ensure all members inherit college and department if left blank
+      setMembers((prev) =>
+        prev.map((m) => ({
+          ...m,
+          college: m.college?.trim() || college || "Institution",
+          department: m.department?.trim() || department || "General",
+        }))
+      );
       setStep(3);
     } else if (step === 3) {
       if (!selectedThemeId) {
@@ -685,15 +717,20 @@ function RegisterTeamForm() {
             </button>
           </div>
 
+          <div className="p-3 rounded-xl bg-[#0D1117] border border-[#30363D] text-[11px] text-slate-300 flex items-center gap-2">
+            <span className="text-base">💡</span>
+            <span>All members automatically inherit your team&apos;s college (<strong>{college || "your college"}</strong>). You can also specify different colleges if your squad is cross-institutional.</span>
+          </div>
+
           <div className="space-y-4">
             {members.map((member, idx) => (
               <div
                 key={idx}
-                className="p-4 rounded-xl bg-[#111827] border border-border space-y-3 relative"
+                className="p-4 rounded-xl bg-[#111827] border border-[#30363D] space-y-3 relative"
               >
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-white flex items-center gap-2">
-                    <span className="w-5 h-5 rounded-full bg-primary/20 text-primary flex items-center justify-center text-[10px] font-bold">
+                    <span className="w-5 h-5 rounded-full bg-red-600/20 text-red-400 border border-red-500/30 flex items-center justify-center text-[10px] font-bold">
                       {idx + 1}
                     </span>
                     Member {idx + 1} {member.isLeader && "(Team Leader)"}
@@ -702,35 +739,46 @@ function RegisterTeamForm() {
                     <button
                       type="button"
                       onClick={() => removeMember(idx)}
-                      className="text-xs text-danger hover:text-rose-300 flex items-center gap-1"
+                      className="text-xs text-rose-400 hover:text-rose-300 flex items-center gap-1 cursor-pointer"
                     >
                       <Trash2 className="w-3.5 h-3.5" /> Remove
                     </button>
                   )}
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                   <div>
-                    <label className="text-[11px] text-muted-foreground block mb-1">Full Name</label>
+                    <label className="text-[11px] text-muted-foreground block mb-1">Full Name *</label>
                     <input
                       type="text"
                       required
                       value={member.name}
                       onChange={(e) => updateMember(idx, "name", e.target.value)}
-                      placeholder="Priya Patel"
-                      className="w-full bg-card border border-border rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-primary"
+                      placeholder="e.g. Member Name"
+                      className="w-full bg-[#0D1117] border border-[#30363D] rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500"
                     />
                   </div>
 
                   <div>
-                    <label className="text-[11px] text-muted-foreground block mb-1">Email</label>
+                    <label className="text-[11px] text-muted-foreground block mb-1">Email Address *</label>
                     <input
                       type="email"
                       required
                       value={member.email}
                       onChange={(e) => updateMember(idx, "email", e.target.value)}
-                      placeholder="priya@university.edu"
-                      className="w-full bg-card border border-border rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-primary"
+                      placeholder="member@example.com"
+                      className="w-full bg-[#0D1117] border border-[#30363D] rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] text-muted-foreground block mb-1">College / Institute</label>
+                    <input
+                      type="text"
+                      value={member.college || college}
+                      onChange={(e) => updateMember(idx, "college", e.target.value)}
+                      placeholder={college || "Institution Name"}
+                      className="w-full bg-[#0D1117] border border-[#30363D] rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500"
                     />
                   </div>
 
@@ -739,7 +787,7 @@ function RegisterTeamForm() {
                     <select
                       value={member.role}
                       onChange={(e) => updateMember(idx, "role", e.target.value)}
-                      className="w-full bg-card border border-border rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-primary"
+                      className="w-full bg-[#0D1117] border border-[#30363D] rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500"
                     >
                       <option value="DEVELOPER">Developer</option>
                       <option value="DESIGNER">Designer</option>
