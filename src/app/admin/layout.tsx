@@ -1,4 +1,3 @@
-import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import AdminSidebar from "@/components/AdminSidebar";
 import AdminNavbar from "@/components/AdminNavbar";
@@ -10,14 +9,10 @@ export default async function AdminLayout({
 }) {
   const user = await getCurrentUser();
 
-  // If not logged in, redirect to admin login
-  if (!user) {
-    redirect("/admin/login");
-  }
-
-  // If role is not admin, redirect
-  if (user.role !== "SUPER_ADMIN" && user.role !== "ADMIN") {
-    redirect("/admin/login?error=unauthorized");
+  // If user is not logged in or doesn't have administrative clearance,
+  // render the children directly (e.g. /admin/login) to prevent infinite redirect loops.
+  if (!user || (user.role !== "SUPER_ADMIN" && user.role !== "ADMIN")) {
+    return <>{children}</>;
   }
 
   return (
